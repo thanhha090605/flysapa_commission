@@ -4,6 +4,7 @@
 //   CS_IDS      Telegram user ID được phép dùng, cách nhau dấu phẩy (VD: 123456,789012)
 //   N8N_BASE    https://flysapa.app.n8n.cloud
 //   N8N_SECRET  giá trị của credential Header Auth trên n8n (header X-Api-Secret)
+//   N8N_AUTH_HEADER (tuỳ chọn) tên header của credential Header Auth, mặc định X-Api-Secret
 //   N8N_PREFIX  (tuỳ chọn) "webhook" (mặc định) hoặc "webhook-test" khi test
 
 const crypto = require('crypto');
@@ -69,7 +70,7 @@ module.exports = async (req, res) => {
 
   const url = `${N8N_BASE.replace(/\/$/, '')}/${prefix}/${path}`;
   const headers = {
-    'X-Api-Secret': N8N_SECRET,
+    [process.env.N8N_AUTH_HEADER || 'X-Api-Secret']: N8N_SECRET,
     'X-TG-User': String(user.id),
   };
   const init = { method: ROUTES[path], headers, signal: AbortSignal.timeout(55000) };
@@ -85,9 +86,14 @@ module.exports = async (req, res) => {
     try {
       data = JSON.parse(text);
     } catch {
-      data = { error: r.ok ? 'n8n trả về dữ liệu không hợp lệ' : `n8n lỗi ${r.status}` };
+      const snippet = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+      return res.status(502).json({ error: `n8n trả về ${r.status}, không phải JSON: ${snippet || '(rỗng)'}` });
     }
-    return res.status(r.ok ? 200 : r.status === 400 ? 400 : 502).json(data);
+    if (!r.ok) {
+      const msg = data.error || data.message || `n8n lỗi ${r.status}`;
+      return res.status(r.status === 400 ? 400 : 502).json({ error: `[n8n ${r.status}] ${msg}` });
+    }
+    return res.status(200).json(data);
   } catch (e) {
     return res.status(504).json({ error: 'Không kết nối được n8n: ' + (e.name === 'TimeoutError' ? 'quá thời gian' : e.message) });
   }
