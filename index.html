@@ -114,15 +114,15 @@
       <input type="file" id="fileCccd" accept="image/*" class="hidden">
       <div class="hint" id="ocrCccdStatus"></div>
 
-      <label for="f_ho_ten">Họ tên</label>
-      <input id="f_ho_ten" autocomplete="off">
+      <div id="rowHoTen"><label for="f_ho_ten">Họ tên</label>
+      <input id="f_ho_ten" autocomplete="off"></div>
       <label for="f_so_cccd">Số CCCD (12 số)</label>
       <input id="f_so_cccd" inputmode="numeric" maxlength="14" autocomplete="off">
       <label for="f_thuong_tru">Nơi thường trú</label>
       <input id="f_thuong_tru" autocomplete="off">
       <label for="f_que_quan">Quê quán</label>
       <input id="f_que_quan" autocomplete="off">
-      <div class="check"><input type="checkbox" id="giayToKhac"><label for="giayToKhac" style="margin:0;color:var(--text)">Đại lý dùng giấy tờ khác (hộ chiếu, không có CCCD…)</label></div>
+      <div class="check" id="rowGiayTo"><input type="checkbox" id="giayToKhac"><label for="giayToKhac" style="margin:0;color:var(--text)">Đại lý dùng giấy tờ khác (hộ chiếu, không có CCCD…)</label></div>
     </div>
 
     <div id="bdBlock">
@@ -197,7 +197,7 @@
     'Bao Viet Bank','NCB','Kienlongbank','SCB','Cake','Timo','Ubank'];
   const KNOWN_FIELDS = ['ho_ten','so_cccd','thuong_tru','que_quan','ngan_hang','stk','chu_tk','bd','sdt'];
 
-  const S = { agents: [], next: '', mode: null, agent: null, busy: false, ocrBusy: 0 };
+  const S = { agents: [], next: '', mode: null, agent: null, busy: false, ocrBusy: 0, cccdImg: '' };
 
   // ---------- helpers ----------
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
@@ -307,6 +307,7 @@
     $('giayToKhac').checked = false;
     ['imgCccd','imgBank'].forEach((id) => { show($(id), false); $(id).removeAttribute('src'); });
     $('ocrCccdStatus').textContent = ''; $('ocrBankStatus').textContent = '';
+    S.cccdImg = '';
   }
 
   function chooseAgent(a) {
@@ -336,8 +337,10 @@
     const needForm = S.mode === 'new' || S.mode === 'alltime';
     const existingThieu = S.mode === 'existing' && S.agent && S.agent.thieu;
     show($('cardInfo'), needForm || existingThieu);
-    show($('cccdBlock'), needForm);
+    show($('cccdBlock'), needForm || existingThieu);
     show($('bdBlock'), needForm);
+    show($('rowHoTen'), needForm);
+    show($('rowGiayTo'), needForm);
     show($('bankBlock'), needForm || existingThieu);
     $('infoTitle').textContent = existingThieu ? '2 · Bổ sung thông tin còn thiếu' : '2 · Thông tin đại lý';
     show($('cardExisting'), S.mode === 'existing' && !existingThieu);
@@ -364,6 +367,7 @@
     try {
       const { preview, base64 } = await imageToBase64(file);
       imgEl.src = preview; show(imgEl, true);
+      if (kind === 'cccd') S.cccdImg = base64;
       const res = await api('ocr', { body: { kind, image: base64 } });
       const f = res.fields || {};
       if (kind === 'cccd') {
@@ -412,6 +416,12 @@
       }
       if (!agent.bd) errors.push('Thiếu BD đại diện');
     }
+    if (existingThieu) {
+      agent.so_cccd = val('f_so_cccd').replace(/\D/g, '');
+      agent.thuong_tru = val('f_thuong_tru');
+      agent.que_quan = val('f_que_quan');
+      if (agent.so_cccd && !/^\d{12}$/.test(agent.so_cccd)) errors.push(`CCCD phải đủ 12 số (đang có ${agent.so_cccd.length})`);
+    }
     if (needForm || existingThieu) {
       agent.ngan_hang = val('f_ngan_hang'); agent.stk = val('f_stk').replace(/\s/g, ''); agent.chu_tk = val('f_chu_tk');
       const anyBank = agent.ngan_hang || agent.stk || agent.chu_tk;
@@ -422,6 +432,7 @@
         else if (!/^\d{6,20}$/.test(agent.stk)) warnings.push('Số tài khoản có ký tự lạ hoặc độ dài bất thường.');
         if (!agent.chu_tk) warnings.push('Thiếu tên chủ tài khoản.');
       }
+      if (needForm && !S.cccdImg) warnings.push('Chưa chọn ảnh CCCD — folder CCCD của đại lý sẽ trống.');
       if (needForm && agent.ho_ten && agent.chu_tk && nameKey(agent.ho_ten) !== nameKey(agent.chu_tk))
         warnings.push(`Chủ TK “${agent.chu_tk}” khác tên trên CCCD “${agent.ho_ten}”.`);
     }
@@ -449,6 +460,7 @@
       khach_chua_ro: khachChuaRo,
       so_tien: soTien,
     };
+    if ((needForm || existingThieu) && S.cccdImg) payload.cccd_image = S.cccdImg;
     return { errors, warnings, payload };
   }
 
