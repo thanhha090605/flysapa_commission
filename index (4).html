@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lệnh chi hoa hồng</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: var(--tg-theme-bg-color, #ffffff);
+    --bg2: var(--tg-theme-secondary-bg-color, #f2f3f5);
+    --text: var(--tg-theme-text-color, #111111);
+    --hint: var(--tg-theme-hint-color, #7a7f87);
+    --link: var(--tg-theme-link-color, #2481cc);
+    --btn: var(--tg-theme-button-color, #2481cc);
+    --btn-text: var(--tg-theme-button-text-color, #ffffff);
+    --border: rgba(127,127,127,.28);
+    --warn-bg: rgba(255,170,0,.14);
+    --warn: #b36b00;
+    --err-bg: rgba(230,60,60,.12);
+    --err: #d12f2f;
+    --ok: #1f9d55;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg2); color: var(--text);
+    font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { padding: 12px 16px calc(96px + env(safe-area-inset-bottom)); }
+  h1 { font-size: 18px; margin: 4px 0 12px; }
+  .card { background: var(--bg); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--hint); margin: 0 0 10px; font-weight: 600; }
+  label { display: block; font-size: 13px; color: var(--hint); margin: 10px 0 4px; }
+  label:first-of-type { margin-top: 0; }
+  input[type=text], input[type=search], input[type=date], input[type=tel], input[type=number], input:not([type]) {
+    width: 100%; padding: 10px 12px; font-size: 16px; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px; outline: none; }
+  input:focus { border-color: var(--btn); }
+  input[readonly] { background: var(--bg2); }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; min-width: 0; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 14px;
+    border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    font-size: 15px; cursor: pointer; }
+  .btn.primary { background: var(--btn); color: var(--btn-text); border-color: transparent; }
+  .btn.block { width: 100%; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .list { max-height: 280px; overflow-y: auto; margin-top: 8px; border: 1px solid var(--border); border-radius: 8px; }
+  .item { padding: 10px 12px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .item:last-child { border-bottom: 0; }
+  .item:active { background: var(--bg2); }
+  .item b { font-weight: 600; }
+  .sub { font-size: 12.5px; color: var(--hint); }
+  .badge { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 10px; margin-left: 6px; background: var(--warn-bg); color: var(--warn); }
+  .badge.blue { background: rgba(36,129,204,.14); color: var(--link); }
+  .chip { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px;
+    background: var(--bg2); border-radius: 8px; }
+  .photo { display: flex; gap: 10px; align-items: center; margin-bottom: 4px; }
+  .photo img { width: 64px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
+  .msgs { margin: 0 0 12px; }
+  .msg { padding: 9px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 13.5px; }
+  .msg.warn { background: var(--warn-bg); color: var(--warn); }
+  .msg.err { background: var(--err-bg); color: var(--err); }
+  .msg.info { background: var(--bg); color: var(--hint); }
+  .hint { font-size: 12.5px; color: var(--hint); margin-top: 4px; }
+  .check { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; color: var(--text); }
+  .check input { width: 18px; height: 18px; }
+  .footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: var(--bg); border-top: 1px solid var(--border); }
+  .hidden { display: none !important; }
+  .spin { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
+    animation: sp .7s linear infinite; display: inline-block; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  details { margin-top: 8px; font-size: 12px; color: var(--hint); }
+  details pre { white-space: pre-wrap; word-break: break-word; margin: 6px 0 0; }
+  .done { text-align: center; padding: 24px 8px 8px; }
+  .done .big { font-size: 44px; }
+  .done a { color: var(--link); word-break: break-all; }
+  .done .box { text-align: left; background: var(--bg2); border-radius: 8px; padding: 12px; margin: 14px 0; }
+  .center { text-align: center; padding: 40px 12px; color: var(--hint); }
+</style>
+</head>
+<body>
+
+<div id="gate" class="card center hidden"></div>
+
+<div id="app" class="hidden">
+  <h1>🧾 Tạo lệnh chi hoa hồng</h1>
+
+  <!-- 1. Đại lý -->
+  <div class="card" id="cardAgent">
+    <h2>1 · Đại lý</h2>
+    <div id="pickBox">
+      <input type="search" id="q" placeholder="Tìm theo mã, tên hoặc 4 số cuối CCCD" autocomplete="off">
+      <div class="list" id="agentList"></div>
+      <button class="btn block" id="btnNew" style="margin-top:10px">＋ Thêm đại lý mới</button>
+    </div>
+    <div id="chosenBox" class="hidden">
+      <div class="chip">
+        <div id="chosenText"></div>
+        <button class="btn" id="btnChange">Đổi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Thông tin đại lý (alltime / new / thiếu thông tin) -->
+  <div class="card hidden" id="cardInfo">
+    <h2 id="infoTitle">2 · Thông tin đại lý</h2>
+
+    <div id="cccdBlock">
+      <label>Ảnh CCCD (mặt trước) — tự điền thông tin</label>
+      <div class="photo">
+        <button class="btn" id="btnCccd">📷 Chọn ảnh CCCD</button>
+        <img id="imgCccd" class="hidden" alt="">
+      </div>
+      <input type="file" id="fileCccd" accept="image/*" class="hidden">
+      <div class="hint" id="ocrCccdStatus"></div>
+
+      <label for="f_ho_ten">Họ tên</label>
+      <input id="f_ho_ten" autocomplete="off">
+      <label for="f_so_cccd">Số CCCD (12 số)</label>
+      <input id="f_so_cccd" inputmode="numeric" maxlength="14" autocomplete="off">
+      <label for="f_thuong_tru">Nơi thường trú</label>
+      <input id="f_thuong_tru" autocomplete="off">
+      <label for="f_que_quan">Quê quán</label>
+      <input id="f_que_quan" autocomplete="off">
+      <div class="check"><input type="checkbox" id="giayToKhac"><label for="giayToKhac" style="margin:0;color:var(--text)">Đại lý dùng giấy tờ khác (hộ chiếu, không có CCCD…)</label></div>
+    </div>
+
+    <div id="bdBlock">
+      <label for="f_bd">BD đại diện</label>
+      <input id="f_bd" list="bdList" autocomplete="off">
+      <datalist id="bdList"></datalist>
+      <label for="f_sdt">SĐT đại lý (nếu có)</label>
+      <input id="f_sdt" type="tel" inputmode="tel" autocomplete="off">
+    </div>
+
+    <div id="bankBlock">
+      <label>Ảnh tài khoản ngân hàng — hoặc gõ tay bên dưới</label>
+      <div class="photo">
+        <button class="btn" id="btnBank">📷 Chọn ảnh STK</button>
+        <img id="imgBank" class="hidden" alt="">
+      </div>
+      <input type="file" id="fileBank" accept="image/*" class="hidden">
+      <div class="hint" id="ocrBankStatus"></div>
+
+      <label for="f_ngan_hang">Ngân hàng</label>
+      <input id="f_ngan_hang" list="bankList" autocomplete="off">
+      <datalist id="bankList"></datalist>
+      <label for="f_stk">Số tài khoản</label>
+      <input id="f_stk" inputmode="numeric" autocomplete="off">
+      <label for="f_chu_tk">Chủ tài khoản</label>
+      <input id="f_chu_tk" autocomplete="off">
+    </div>
+  </div>
+
+  <!-- Thông tin đại lý có sẵn (read-only) -->
+  <div class="card hidden" id="cardExisting">
+    <h2>Thông tin chuyển khoản</h2>
+    <div id="existingInfo"></div>
+  </div>
+
+  <!-- 3. Lệnh chi -->
+  <div class="card hidden" id="cardOrder">
+    <h2 id="orderTitle">3 · Lệnh chi</h2>
+    <label for="f_ngay">Ngày</label>
+    <input id="f_ngay" type="date">
+    <div class="row">
+      <div>
+        <label for="f_so_khach">Số khách</label>
+        <input id="f_so_khach" inputmode="numeric" autocomplete="off">
+      </div>
+      <div>
+        <label for="f_so_tien">Số tiền hoa hồng</label>
+        <input id="f_so_tien" inputmode="numeric" placeholder="VD 250000 hoặc 250k" autocomplete="off">
+      </div>
+    </div>
+    <div class="hint" id="moneyHint"></div>
+    <div class="check"><input type="checkbox" id="khachChuaRo"><label for="khachChuaRo" style="margin:0;color:var(--text)">Chưa rõ số khách</label></div>
+  </div>
+
+  <div class="msgs" id="msgs"></div>
+</div>
+
+<div id="doneView" class="card done hidden"></div>
+
+<div class="footer hidden" id="footer">
+  <button class="btn primary block" id="btnSubmit">Tạo lệnh chi</button>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const tg = window.Telegram && window.Telegram.WebApp;
+  const $ = (id) => document.getElementById(id);
+  const API = '/api/n8n';
+  const BANKS = ['Vietcombank','VietinBank','BIDV','Agribank','Techcombank','MB Bank','ACB','VPBank','TPBank','Sacombank',
+    'HDBank','VIB','SHB','OCB','MSB','SeABank','Eximbank','LPBank','Nam A Bank','Bac A Bank','ABBank','VietBank','PVcomBank',
+    'Bao Viet Bank','NCB','Kienlongbank','SCB','Cake','Timo','Ubank'];
+  const KNOWN_FIELDS = ['ho_ten','so_cccd','thuong_tru','que_quan','ngan_hang','stk','chu_tk','bd','sdt'];
+
+  const S = { agents: [], next: '', mode: null, agent: null, busy: false, ocrBusy: 0 };
+
+  // ---------- helpers ----------
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const strip = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+  const norm = (s) => strip(s).toLowerCase().replace(/\s+/g, ' ').trim();
+  const nameKey = (s) => strip(s).toUpperCase().replace(/[^A-Z ]/g, '').replace(/\s+/g, ' ').trim();
+  const val = (id) => $(id).value.trim();
+  const fmtMoney = (n) => new Intl.NumberFormat('vi-VN').format(n) + ' ₫';
+  const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+  const show = (el, on) => el.classList.toggle('hidden', !on);
+  const store = {
+    get(k) { try { return localStorage.getItem(k) || ''; } catch { return ''; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  };
+  const folderUrl = (x) => !x ? '' : /^https?:/.test(x) ? x : 'https://drive.google.com/drive/folders/' + encodeURIComponent(x);
+
+  function parseMoney(raw) {
+    let s = String(raw || '').toLowerCase().replace(/\s/g, '');
+    if (!s) return 0;
+    let mult = 1;
+    if (/(tr|m)$/.test(s)) { mult = 1e6; s = s.replace(/(tr|m)$/, ''); }
+    else if (/k$/.test(s)) { mult = 1e3; s = s.replace(/k$/, ''); }
+    if (mult > 1) s = s.replace(',', '.');
+    else s = s.replace(/[.,]/g, '');
+    const n = Number(s);
+    return Number.isFinite(n) ? Math.round(n * mult) : 0;
+  }
+
+  function alert_(msg) {
+    if (tg && tg.showAlert) tg.showAlert(msg); else window.alert(msg);
+  }
+  function confirm_(msg) {
+    return new Promise((resolve) => {
+      if (tg && tg.showConfirm) tg.showConfirm(msg, resolve); else resolve(window.confirm(msg));
+    });
+  }
+  function haptic(type) { try { tg.HapticFeedback.notificationOccurred(type); } catch {} }
+
+  async function api(path, opts = {}) {
+    const init = { method: opts.body ? 'POST' : 'GET', headers: { Authorization: 'tma ' + tg.initData } };
+    if (opts.body) { init.headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(opts.body); }
+    let r;
+    try { r = await fetch(`${API}?path=${encodeURIComponent(path)}`, init); }
+    catch { throw new Error('Mất kết nối mạng'); }
+    let data = {};
+    try { data = await r.json(); } catch {}
+    if (!r.ok || data.error) throw new Error(data.error || `Lỗi ${r.status}`);
+    return data;
+  }
+
+  // ---------- image -> base64 (≤ ~900KB để qua giới hạn 1MB của OCR.space free) ----------
+  async function imageToBase64(file) {
+    const bmp = await new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Không đọc được ảnh')); };
+      img.src = url;
+    });
+    let maxSide = 1600, quality = 0.85, out = '';
+    for (let i = 0; i < 6; i++) {
+      const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(bmp, 0, 0, c.width, c.height);
+      out = c.toDataURL('image/jpeg', quality);
+      if (out.length * 0.75 < 900 * 1024) break;
+      maxSide = Math.round(maxSide * 0.8); quality = Math.max(0.6, quality - 0.08);
+    }
+    return { preview: out, base64: out.replace(/^data:image\/jpeg;base64,/, '') };
+  }
+
+  // ---------- gate ----------
+  function gate(msg) {
+    const g = $('gate'); g.innerHTML = msg; show(g, true); show($('app'), false); show($('footer'), false);
+  }
+
+  // ---------- agents ----------
+  function agentSub(a) {
+    const bits = [];
+    if (a.cccd4) bits.push('CCCD ···' + esc(a.cccd4));
+    if (a.ngan_hang || a.stk) bits.push(esc([a.ngan_hang, a.stk].filter(Boolean).join(' · ')));
+    return bits.join(' · ') || 'Chưa có thông tin';
+  }
+  function isAllTime(a) { return String(a.nguon || '').toLowerCase().replace(/[^a-z]/g, '').includes('alltime'); }
+
+  function renderList() {
+    const q = norm($('q').value);
+    const list = $('agentList');
+    const hits = S.agents.filter((a) => !q || norm(`${a.ma} ${a.ten} ${a.cccd4 || ''}`).includes(q)).slice(0, 40);
+    if (!hits.length) { list.innerHTML = '<div class="item sub">Không thấy đại lý — bấm “＋ Thêm đại lý mới”</div>'; return; }
+    list.innerHTML = hits.map((a) => `
+      <div class="item" data-ma="${esc(a.ma)}">
+        <b>${esc(a.ma)}</b> · ${esc(a.ten)}
+        ${isAllTime(a) ? '<span class="badge blue">all time</span>' : ''}
+        ${a.thieu ? '<span class="badge">thiếu TT</span>' : ''}
+        <div class="sub">${agentSub(a)}</div>
+      </div>`).join('');
+  }
+
+  function fillField(id, v) { if (v != null && v !== '') $(id).value = v; }
+  function clearForm() {
+    ['f_ho_ten','f_so_cccd','f_thuong_tru','f_que_quan','f_ngan_hang','f_stk','f_chu_tk','f_sdt'].forEach((id) => { $(id).value = ''; });
+    $('f_bd').value = store.get('lastBD');
+    $('giayToKhac').checked = false;
+    ['imgCccd','imgBank'].forEach((id) => { show($(id), false); $(id).removeAttribute('src'); });
+    $('ocrCccdStatus').textContent = ''; $('ocrBankStatus').textContent = '';
+  }
+
+  function chooseAgent(a) {
+    clearForm();
+    S.agent = a;
+    S.mode = a ? (isAllTime(a) ? 'alltime' : 'existing') : 'new';
+    if (a) {
+      fillField('f_ho_ten', a.ten); fillField('f_ngan_hang', a.ngan_hang);
+      fillField('f_stk', a.stk); fillField('f_chu_tk', a.chu_tk); fillField('f_bd', a.bd);
+    }
+    refreshLayout();
+  }
+
+  function resetAgent() {
+    S.agent = null; S.mode = null; $('q').value = ''; renderList(); refreshLayout();
+  }
+
+  function refreshLayout() {
+    const picked = !!S.mode;
+    show($('pickBox'), !picked);
+    show($('chosenBox'), picked);
+    if (picked) {
+      $('chosenText').innerHTML = S.mode === 'new'
+        ? `<b>${esc(S.next || 'DL???')}</b> · Đại lý mới <span class="badge blue">mới</span>`
+        : `<b>${esc(S.agent.ma)}</b> · ${esc(S.agent.ten)}${S.mode === 'alltime' ? '<span class="badge blue">all time</span>' : ''}`;
+    }
+    const needForm = S.mode === 'new' || S.mode === 'alltime';
+    const existingThieu = S.mode === 'existing' && S.agent && S.agent.thieu;
+    show($('cardInfo'), needForm || existingThieu);
+    show($('cccdBlock'), needForm);
+    show($('bdBlock'), needForm);
+    show($('bankBlock'), needForm || existingThieu);
+    $('infoTitle').textContent = existingThieu ? '2 · Bổ sung thông tin còn thiếu' : '2 · Thông tin đại lý';
+    show($('cardExisting'), S.mode === 'existing' && !existingThieu);
+    if (S.mode === 'existing' && S.agent) {
+      const a = S.agent;
+      $('existingInfo').innerHTML = `
+        <div><b>${esc(a.chu_tk || a.ten)}</b></div>
+        <div class="sub">${esc(a.ngan_hang || '—')} · ${esc(a.stk || '—')}</div>
+        <div class="sub">CCCD ···${esc(a.cccd4 || '—')} · BD: ${esc(a.bd || '—')}</div>`;
+    }
+    show($('cardOrder'), picked);
+    show($('footer'), picked);
+    $('orderTitle').textContent = (needForm || existingThieu ? '3' : '2') + ' · Lệnh chi';
+    updateHints();
+  }
+
+  // ---------- OCR ----------
+  async function runOcr(kind, file) {
+    const statusEl = $(kind === 'cccd' ? 'ocrCccdStatus' : 'ocrBankStatus');
+    const imgEl = $(kind === 'cccd' ? 'imgCccd' : 'imgBank');
+    const btn = $(kind === 'cccd' ? 'btnCccd' : 'btnBank');
+    S.ocrBusy++; btn.disabled = true;
+    statusEl.innerHTML = '<span class="spin"></span> Đang xử lý ảnh…';
+    try {
+      const { preview, base64 } = await imageToBase64(file);
+      imgEl.src = preview; show(imgEl, true);
+      const res = await api('ocr', { body: { kind, image: base64 } });
+      const f = res.fields || {};
+      if (kind === 'cccd') {
+        fillField('f_so_cccd', f.so_cccd); fillField('f_ho_ten', f.ho_ten);
+        fillField('f_que_quan', f.que_quan); fillField('f_thuong_tru', f.noi_thuong_tru);
+      } else {
+        fillField('f_ngan_hang', f.ngan_hang); fillField('f_stk', f.so_tai_khoan); fillField('f_chu_tk', f.chu_tai_khoan);
+      }
+      const warns = (res.warnings || []).map(esc).join('<br>');
+      statusEl.innerHTML = '✅ Đã điền — hãy kiểm tra lại từng ô.' + (warns ? `<br><span style="color:var(--warn)">${warns}</span>` : '')
+        + (res.raw ? `<details><summary>Xem chữ OCR đọc được</summary><pre>${esc(res.raw)}</pre></details>` : '');
+      haptic('success');
+    } catch (e) {
+      statusEl.innerHTML = `<span style="color:var(--err)">⚠️ ${esc(e.message)} — bạn nhập tay các ô bên dưới.</span>`;
+      haptic('error');
+    } finally {
+      S.ocrBusy--; btn.disabled = false; updateHints();
+    }
+  }
+
+  // ---------- validation ----------
+  function collect() {
+    const errors = [], warnings = [];
+    if (!S.mode) return { errors: ['Chưa chọn đại lý'], warnings, payload: null };
+
+    const needForm = S.mode !== 'existing';
+    const existingThieu = S.mode === 'existing' && S.agent && S.agent.thieu;
+    const agent = {};
+    const giayToKhac = needForm && $('giayToKhac').checked;
+
+    if (needForm) {
+      agent.ho_ten = val('f_ho_ten');
+      agent.so_cccd = val('f_so_cccd').replace(/\D/g, '');
+      agent.thuong_tru = val('f_thuong_tru');
+      agent.que_quan = val('f_que_quan');
+      agent.bd = val('f_bd');
+      agent.sdt = val('f_sdt');
+      if (!agent.ho_ten) errors.push('Thiếu họ tên đại lý');
+      if (!giayToKhac) {
+        if (!/^\d{12}$/.test(agent.so_cccd)) errors.push(`CCCD phải đủ 12 số (đang có ${agent.so_cccd.length})`);
+        else {
+          const g = Number(agent.so_cccd[3]);
+          if (/(^|\s)thị(\s|$)/i.test(agent.ho_ten) && g % 2 === 0)
+            warnings.push('Tên có “Thị” nhưng mã giới tính trên CCCD là Nam — kiểm tra lại số CCCD hoặc tên.');
+        }
+      }
+      if (!agent.bd) errors.push('Thiếu BD đại diện');
+    }
+    if (needForm || existingThieu) {
+      agent.ngan_hang = val('f_ngan_hang'); agent.stk = val('f_stk').replace(/\s/g, ''); agent.chu_tk = val('f_chu_tk');
+      const anyBank = agent.ngan_hang || agent.stk || agent.chu_tk;
+      if (!anyBank) warnings.push('Chưa có thông tin ngân hàng — kế toán sẽ không có STK để chuyển.');
+      else {
+        if (!agent.ngan_hang) warnings.push('Thiếu tên ngân hàng.');
+        if (!agent.stk) warnings.push('Thiếu số tài khoản.');
+        else if (!/^\d{6,20}$/.test(agent.stk)) warnings.push('Số tài khoản có ký tự lạ hoặc độ dài bất thường.');
+        if (!agent.chu_tk) warnings.push('Thiếu tên chủ tài khoản.');
+      }
+      if (needForm && agent.ho_ten && agent.chu_tk && nameKey(agent.ho_ten) !== nameKey(agent.chu_tk))
+        warnings.push(`Chủ TK “${agent.chu_tk}” khác tên trên CCCD “${agent.ho_ten}”.`);
+    }
+
+    const ngay = val('f_ngay');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ngay)) errors.push('Chọn ngày');
+
+    const khachChuaRo = $('khachChuaRo').checked;
+    const soKhach = Number(val('f_so_khach').replace(/\D/g, ''));
+    if (!khachChuaRo && !(soKhach > 0)) errors.push('Nhập số khách (hoặc tick “Chưa rõ số khách”)');
+
+    const soTien = parseMoney(val('f_so_tien'));
+    if (!(soTien > 0)) errors.push('Nhập số tiền hoa hồng');
+    else if (!khachChuaRo && soKhach > 0 && soTien / soKhach !== 200000)
+      warnings.push(`Bình quân ${fmtMoney(Math.round(soTien / soKhach))}/khách (thường là 200.000 ₫) — kiểm tra lại số khách / số tiền.`);
+    if (soTien > 0 && soTien < 1000) warnings.push('Số tiền rất nhỏ — bạn có định nhập “k” (nghìn) không?');
+
+    const payload = {
+      mode: S.mode,
+      ma_dl: S.mode === 'new' ? '' : S.agent.ma,
+      agent: S.mode === 'existing' && !existingThieu ? {} : agent,
+      giay_to_khac: giayToKhac,
+      ngay,
+      so_khach: khachChuaRo ? 0 : soKhach,
+      khach_chua_ro: khachChuaRo,
+      so_tien: soTien,
+    };
+    return { errors, warnings, payload };
+  }
+
+  function updateHints() {
+    const n = parseMoney(val('f_so_tien'));
+    $('moneyHint').textContent = n > 0 ? '= ' + fmtMoney(n) : '';
+    $('f_so_khach').disabled = $('khachChuaRo').checked;
+    if ($('khachChuaRo').checked) $('f_so_khach').value = '';
+    const box = $('msgs');
+    if (!S.mode) { box.innerHTML = ''; return; }
+    const { warnings } = collect();
+    box.innerHTML = warnings.map((w) => `<div class="msg warn">⚠️ ${esc(w)}</div>`).join('');
+  }
+
+  // ---------- submit ----------
+  async function submit() {
+    if (S.busy || S.ocrBusy) return;
+    const { errors, warnings, payload } = collect();
+    if (errors.length) {
+      $('msgs').innerHTML = errors.map((e) => `<div class="msg err">❌ ${esc(e)}</div>`).join('') +
+        warnings.map((w) => `<div class="msg warn">⚠️ ${esc(w)}</div>`).join('');
+      haptic('error'); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      return;
+    }
+    const code = S.mode === 'new' ? (S.next || 'mã mới') : S.agent.ma;
+    const name = S.mode === 'existing' ? S.agent.ten : payload.agent.ho_ten;
+    const [y, m, d] = payload.ngay.split('-');
+    const summary = `Tạo lệnh chi?\n\n${code} · ${name}\nNgày ${d}/${m}/${y}\n` +
+      `${payload.khach_chua_ro ? 'Chưa rõ số khách' : payload.so_khach + ' khách'}\nSố tiền: ${fmtMoney(payload.so_tien)}` +
+      (warnings.length ? `\n\n⚠️ Có ${warnings.length} cảnh báo chưa xử lý.` : '');
+    if (!(await confirm_(summary))) return;
+
+    S.busy = true;
+    const btn = $('btnSubmit'); btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span> Đang gửi…';
+    try {
+      const res = await api('create-order', { body: payload });
+      if (payload.agent && payload.agent.bd) store.set('lastBD', payload.agent.bd);
+      showDone(res, payload);
+      haptic('success');
+    } catch (e) {
+      $('msgs').innerHTML = `<div class="msg err">❌ ${esc(e.message)}</div>`;
+      haptic('error');
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    } finally {
+      S.busy = false; btn.disabled = false; btn.textContent = 'Tạo lệnh chi';
+    }
+  }
+
+  function showDone(res, payload) {
+    show($('app'), false); show($('footer'), false);
+    const f1 = folderUrl(res.folder_chung_tu), f2 = folderUrl(res.folder_cccd);
+    $('doneView').innerHTML = `
+      <div class="big">✅</div>
+      <h2 style="margin:6px 0;font-size:18px;text-transform:none;letter-spacing:0;color:var(--text)">Đã gửi lệnh chờ duyệt</h2>
+      <div class="sub">Mã lệnh <b>${esc(res.ma_lenh || '')}</b> · ${esc(res.ma_dl || '')}</div>
+      <div class="box">
+        <div><b>Lưu ảnh chứng từ chuyển khoản vào:</b></div>
+        ${f1 ? `<div style="margin:4px 0 10px"><a href="${esc(f1)}" target="_blank" rel="noopener">📁 Folder chứng từ ngày ${esc(payload.ngay)}</a></div>` : '<div class="sub">—</div>'}
+        <div class="sub">Đặt tên file theo cột “Tên file chứng từ CK” (VD 01_DL001_250k.jpg), sau đó tick “Đã lưu CK”.</div>
+        ${f2 ? `<div style="margin-top:10px"><a href="${esc(f2)}" target="_blank" rel="noopener">🪪 Folder CCCD đại lý</a></div>` : ''}
+      </div>
+      <button class="btn primary block" id="btnAgain">Tạo lệnh khác</button>`;
+    show($('doneView'), true);
+    $('btnAgain').onclick = () => loadAll(true);
+    $('doneView').querySelectorAll('a').forEach((a) => a.addEventListener('click', (ev) => {
+      if (tg && tg.openLink) { ev.preventDefault(); tg.openLink(a.href); }
+    }));
+  }
+
+  // ---------- init ----------
+  async function loadAll(again) {
+    show($('doneView'), false);
+    gate('<span class="spin"></span> Đang tải danh sách đại lý…');
+    try {
+      const data = await api('agents');
+      S.agents = data.agents || [];
+      S.next = data.next_code || '';
+      $('bdList').innerHTML = [...new Set(S.agents.map((a) => a.bd).filter(Boolean))].sort().map((b) => `<option value="${esc(b)}">`).join('');
+      show($('gate'), false); show($('app'), true);
+      S.agent = null; S.mode = null; $('q').value = '';
+      ['f_so_khach','f_so_tien'].forEach((id) => { $(id).value = ''; });
+      $('khachChuaRo').checked = false; $('f_ngay').value = todayISO();
+      clearForm(); renderList(); refreshLayout();
+      if (again) window.scrollTo({ top: 0 });
+    } catch (e) {
+      gate(`⚠️ ${esc(e.message)}<br><br><button class="btn" id="btnRetry">Thử lại</button>`);
+      $('btnRetry').onclick = () => loadAll(again);
+    }
+  }
+
+  function bind() {
+    $('q').addEventListener('input', renderList);
+    $('agentList').addEventListener('click', (ev) => {
+      const el = ev.target.closest('.item[data-ma]'); if (!el) return;
+      const a = S.agents.find((x) => x.ma === el.dataset.ma); if (a) chooseAgent(a);
+    });
+    $('btnNew').onclick = () => chooseAgent(null);
+    $('btnChange').onclick = resetAgent;
+    $('btnCccd').onclick = () => $('fileCccd').click();
+    $('btnBank').onclick = () => $('fileBank').click();
+    $('fileCccd').onchange = (e) => { const f = e.target.files[0]; e.target.value = ''; if (f) runOcr('cccd', f); };
+    $('fileBank').onchange = (e) => { const f = e.target.files[0]; e.target.value = ''; if (f) runOcr('bank', f); };
+    document.querySelectorAll('input').forEach((i) => i.addEventListener('input', updateHints));
+    $('khachChuaRo').addEventListener('change', updateHints);
+    $('btnSubmit').onclick = submit;
+    $('bankList').innerHTML = BANKS.map((b) => `<option value="${esc(b)}">`).join('');
+  }
+
+  // ---------- start ----------
+  if (!tg || !tg.initData) {
+    gate('Vui lòng mở ứng dụng này từ bot Telegram.');
+    return;
+  }
+  tg.ready(); tg.expand();
+  try { tg.setHeaderColor('secondary_bg_color'); } catch {}
+  bind();
+  loadAll(false);
+})();
+</script>
+</body>
+</html>
